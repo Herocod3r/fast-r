@@ -1,4 +1,4 @@
-package transport
+package network
 
 type Server struct {
 	Name    string
