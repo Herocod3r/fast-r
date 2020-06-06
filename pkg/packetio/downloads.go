@@ -19,12 +19,15 @@ func NewDownloadStream(callback func(int64, time.Duration)) *DownloadStream {
 	return &DownloadStream{Callback: callback}
 }
 
-func (ds *DownloadStream) Process(stream io.Reader) {
+func (ds *DownloadStream) Process(stream io.ReadCloser) {
 	ds.TimeStarted = time.Now()
-	buffer := new(bytes.Buffer)
+	buffer := make([]byte, bytes.MinRead)
 	for {
-		//todo find a way to do reads without in memory buffers, maybe a file instead?
-		n, err := buffer.ReadFrom(stream)
+		n, err := stream.Read(buffer)
+		ds.TotalBytes += int64(n)
+		ds.TotalTime = time.Now().Sub(ds.TimeStarted)
+		go ds.Callback(ds.TotalBytes, ds.TotalTime)
+
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				//maybe some custom close action ?
@@ -32,8 +35,6 @@ func (ds *DownloadStream) Process(stream io.Reader) {
 			break
 		}
 
-		ds.TotalBytes += n
-		ds.TotalTime = time.Now().Sub(ds.TimeStarted)
-		go ds.Callback(ds.TotalBytes, ds.TotalTime)
 	}
+	ds.TimeEnded = time.Now()
 }
