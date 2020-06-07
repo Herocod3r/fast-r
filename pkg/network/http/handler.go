@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -13,8 +14,8 @@ import (
 type Handler struct {
 }
 
-func (h Handler) ExecuteUpload(server *network.Server, uploadReader io.Reader) error {
-	req, _ := http.NewRequest("POST", server.Address, uploadReader)
+func (h Handler) ExecuteUpload(ctx context.Context, server *network.Server, uploadReader io.Reader) error {
+	req, _ := http.NewRequestWithContext(ctx, "POST", server.Address, uploadReader)
 	req.ContentLength = 5242880 //5MB (WorstCase)
 	req.Header.Set("Content-Type", "text/plain")
 	rsp, err := http.DefaultClient.Do(req)
@@ -29,12 +30,12 @@ func (h Handler) ExecuteUpload(server *network.Server, uploadReader io.Reader) e
 	return nil
 }
 
-func (h Handler) ExecuteDownload(server *network.Server) (io.ReadCloser, error) {
+func (h Handler) ExecuteDownload(ctx context.Context, server *network.Server) (io.ReadCloser, error) {
 	ul, _ := url.Parse(server.Address)
 	ul.Path = ""
 	downloadUrl := fmt.Sprintf("%s/speedtest/random3000x3000.jpg?r=2", ul.String())
-
-	rsp, err := http.Get(downloadUrl)
+	req, _ := http.NewRequestWithContext(ctx, "GET", downloadUrl, nil)
+	rsp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

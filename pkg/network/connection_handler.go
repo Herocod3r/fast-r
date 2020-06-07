@@ -1,8 +1,11 @@
 package network
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
 type ConnectionHandler interface {
-	ExecuteUpload(server *Server, uploadReader io.Reader) error
-	ExecuteDownload(server *Server) (io.ReadCloser, error)
+	ExecuteUpload(ctx context.Context, server *Server, uploadReader io.Reader) error
+	ExecuteDownload(ctx context.Context, server *Server) (io.ReadCloser, error)
 }

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -27,7 +28,7 @@ func TestHandler_ExecuteDownload(t *testing.T) {
 	}
 
 	handler := Handler{}
-	stream, er := handler.ExecuteDownload(&servers[0])
+	stream, er := handler.ExecuteDownload(context.Background(), &servers[0])
 	if er != nil {
 		t.Fail()
 		return
@@ -72,7 +73,7 @@ func TestHandler_ExecuteUpload(t *testing.T) {
 
 		fmt.Println(fmt.Sprintf("Speed is %.1f Mbs", speed))
 	})
-	er = handler.ExecuteUpload(&servers[0], uploadStream)
+	er = handler.ExecuteUpload(context.Background(), &servers[0], uploadStream)
 	if er != nil {
 		t.Fail()
 		return
