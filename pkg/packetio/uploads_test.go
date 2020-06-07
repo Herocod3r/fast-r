@@ -1,6 +1,8 @@
 package packetio
 
 import (
+	"errors"
+	"io"
 	"testing"
 	"time"
 )
@@ -11,10 +13,7 @@ func TestUploadStream_Read(t *testing.T) {
 	us := UploadStream{Callback: func(i int64, duration time.Duration) {
 
 	}}
-	n, er := us.Read(buff)
-	if n != size {
-		t.Fail()
-	}
+	_, er := us.Read(buff)
 
 	if er != nil {
 		t.Fail()
@@ -27,12 +26,18 @@ func TestUploadStream_Read_EOF(t *testing.T) {
 	us := UploadStream{Callback: func(i int64, duration time.Duration) {
 
 	}}
-	n, er := us.Read(buff)
-	if n != maxUploadSize {
-		t.Fail()
+
+	for {
+		n, er := us.Read(buff)
+		if n == 0 {
+			break
+		}
+		if er != nil {
+			if !errors.Is(er, io.EOF) {
+				t.Fail()
+			}
+		}
+
 	}
 
-	if er == nil {
-		t.Fail()
-	}
 }
