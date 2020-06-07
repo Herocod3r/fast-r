@@ -2,14 +2,13 @@ package packetio
 
 import (
 	"io"
-	"math"
 	"math/rand"
 	"time"
 )
 
 const (
 	letterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	maxUploadSize = 10485760 //10mb
+	maxUploadSize = 5242880 //5mb
 )
 
 type UploadStream struct {
@@ -21,42 +20,48 @@ type UploadStream struct {
 	payloadBuffer []byte
 }
 
+func NewUploadStream(callback func(int64, time.Duration)) *UploadStream {
+	return &UploadStream{Callback: callback}
+}
+
 func (u *UploadStream) Read(p []byte) (n int, err error) {
 	if u.payloadBuffer == nil {
-		u.payloadBuffer = u.getDefaultBuffer(512)
+		u.payloadBuffer = u.getDefaultBuffer(1024)
+		u.TimeStarted = time.Now()
+	}
+	if u.TotalBytes >= maxUploadSize {
+		return 0, io.EOF
 	}
 
-	lenP := len(p)
-
-	if lenP <= cap(u.payloadBuffer) {
-		n = copy(p, u.payloadBuffer[:len(p)])
-	} else {
-		//extra := lenP - cap(u.payloadBuffer)
-		runs := math.Ceil(float64(lenP) / float64(cap(u.payloadBuffer)))
-		for i := 0; i < int(runs); i++ {
-			if i == 0 {
-				tempn := copy(p[i:], u.payloadBuffer)
-				n += tempn
-				continue
-			}
-			extra := lenP - n
-			var tempn int
-			if extra > cap(u.payloadBuffer) {
-				tempn = copy(p[n:], u.payloadBuffer)
-			} else {
-				tempn = copy(p[n:], u.payloadBuffer[:extra])
-			}
-			n += tempn
-		}
-	}
+	n = copy(p, u.payloadBuffer)
+	//
+	//lenP := len(p)
+	//
+	//if lenP <= cap(u.payloadBuffer) {
+	//	n = copy(p, u.payloadBuffer[:len(p)])
+	//} else {
+	//	//extra := lenP - cap(u.payloadBuffer)
+	//	runs := math.Ceil(float64(lenP) / float64(cap(u.payloadBuffer)))
+	//	for i := 0; i < int(runs); i++ {
+	//		if i == 0 {
+	//			tempn := copy(p[i:], u.payloadBuffer)
+	//			n += tempn
+	//			continue
+	//		}
+	//		extra := lenP - n
+	//		var tempn int
+	//		if extra > cap(u.payloadBuffer) {
+	//			tempn = copy(p[n:], u.payloadBuffer)
+	//		} else {
+	//			tempn = copy(p[n:], u.payloadBuffer[:extra])
+	//		}
+	//		n += tempn
+	//	}
+	//}
 
 	u.TotalBytes += int64(n)
 	u.TotalTime = time.Now().Sub(u.TimeStarted)
 	go u.Callback(u.TotalBytes, u.TotalTime)
-	if n >= maxUploadSize {
-		err = io.EOF
-		u.TimeEnded = time.Now()
-	}
 	return n, err
 }
 

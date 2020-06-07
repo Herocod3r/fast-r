@@ -14,7 +14,19 @@ type Handler struct {
 }
 
 func (h Handler) ExecuteUpload(server *network.Server, uploadReader io.Reader) error {
-	panic("implement me")
+	req, _ := http.NewRequest("POST", server.Address, uploadReader)
+	req.ContentLength = 5242880 //5MB (WorstCase)
+	req.Header.Set("Content-Type", "text/plain")
+	rsp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if rsp.StatusCode != http.StatusOK {
+		return &network.Error{InternalError: errors.New("Unable to connect to network")}
+	}
+
+	return nil
 }
 
 func (h Handler) ExecuteDownload(server *network.Server) (io.ReadCloser, error) {

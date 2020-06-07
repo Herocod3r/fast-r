@@ -1,11 +1,12 @@
 package packetio
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"time"
 )
+
+const MinBuffer = 1024
 
 type DownloadStream struct {
 	TotalBytes  int64
@@ -21,7 +22,7 @@ func NewDownloadStream(callback func(int64, time.Duration)) *DownloadStream {
 
 func (ds *DownloadStream) Process(stream io.ReadCloser) {
 	ds.TimeStarted = time.Now()
-	buffer := make([]byte, bytes.MinRead)
+	buffer := make([]byte, MinBuffer)
 	for {
 		n, err := stream.Read(buffer)
 		ds.TotalBytes += int64(n)
