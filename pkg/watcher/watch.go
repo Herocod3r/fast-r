@@ -6,9 +6,10 @@ import (
 	"time"
 )
 
-//This package is responsible for monitoring and pulling the plugs when the speed has been measured
+//This package is responsible for monitoring latency
 
-var ByteRate = int64(1048576)
+var ByteRate int64 = 1048576
+var MinimumLatency int64 = 10 //Milliseconds
 
 func NewListiner(cancelFunc context.CancelFunc) *Listener {
 	return &Listener{cancelFunc: cancelFunc, packetsQueue: NewItemQueue(), currentPacketTime: time.Now()}
@@ -33,14 +34,14 @@ func (l *Listener) Listen(bytesTransfered int64) {
 	l.packetsQueue.Enqueue(time.Now().Sub(l.currentPacketTime))
 	l.currentPacketTime = time.Now()
 	if l.packetsQueue.Size() >= 3 {
-		_ = l.packetsQueue.Dequeue()
 		pointA := time.Duration(math.Abs(float64(l.packetsQueue.items[0] - l.packetsQueue.items[1])))
 		pointB := time.Duration(math.Abs(float64(l.packetsQueue.items[1] - l.packetsQueue.items[2])))
 
-		isUniform := pointA.Milliseconds() < 10 && pointB.Milliseconds() < 10
+		isUniform := pointA.Milliseconds() < MinimumLatency && pointB.Milliseconds() < MinimumLatency
 		if isUniform {
 			l.cancelFunc()
 		}
+		_ = l.packetsQueue.Dequeue()
 	}
 	l.bufferedBytes = 0
 }
