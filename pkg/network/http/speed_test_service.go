@@ -23,6 +23,10 @@ type speedTestService struct {
 	ignoreIds []string
 }
 
+func NewSpeedTestService() network.Service {
+	return &speedTestService{}
+}
+
 func (s *speedTestService) GetServers(max int, client network.Client) (servers []network.Server, er error) {
 	if len(client.MetaData) < 1 {
 		return nil, errors.New("client metadata missing")
@@ -37,7 +41,7 @@ func (s *speedTestService) GetServers(max int, client network.Client) (servers [
 	configEndpointUrl := ul.String()
 	rsp, er := http.Get(configEndpointUrl)
 	if er != nil {
-		er = &network.Error{InternalError: er}
+		er = network.NetworkAccessErr
 		return
 	}
 	defer rsp.Body.Close()
@@ -98,7 +102,7 @@ func (s *speedTestService) GetClientInfo() (client network.Client, er error) {
 	configEndpointUrl := ul.String()
 	rsp, er := http.Get(configEndpointUrl)
 	if er != nil {
-		er = &network.Error{InternalError: er}
+		er = network.NetworkAccessErr
 		return
 	}
 	defer rsp.Body.Close()
@@ -136,6 +140,7 @@ func (s *speedTestService) parseClientXml(buffer *bytes.Buffer) (client network.
 		Latitude:  float32(latitude),
 		Longitude: float32(longitude),
 		Isp:       settingsElm.SelectAttrValue("isp", ""),
+		Location:  settingsElm.SelectAttrValue("country", ""),
 	}
 	if serverConfigElm != nil {
 		client.MetaData = serverConfigElm.SelectAttrValue("ignoreids", "")

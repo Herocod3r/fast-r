@@ -1,9 +1,7 @@
 package network
 
-type Error struct {
-	InternalError error
-}
+import "errors"
 
-func (e *Error) Error() string {
-	return e.InternalError.Error()
-}
+var (
+	NetworkAccessErr = errors.New("Unable to connect to remote network")
+)

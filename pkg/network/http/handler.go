@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,7 +23,7 @@ func (h Handler) ExecuteUpload(ctx context.Context, server *network.Server, uplo
 	}
 
 	if rsp.StatusCode != http.StatusOK {
-		return &network.Error{InternalError: errors.New("Unable to connect to network")}
+		return network.NetworkAccessErr
 	}
 
 	return nil
@@ -41,7 +40,7 @@ func (h Handler) ExecuteDownload(ctx context.Context, server *network.Server) (i
 	}
 
 	if rsp.StatusCode != http.StatusOK {
-		return nil, &network.Error{InternalError: errors.New("Unable to connect to network")}
+		return nil, network.NetworkAccessErr
 	}
 
 	return rsp.Body, nil

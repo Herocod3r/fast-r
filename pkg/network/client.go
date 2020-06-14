@@ -6,4 +6,5 @@ type Client struct {
 	Longitude float32
 	Isp       string
 	MetaData  string
+	Location  string
 }
