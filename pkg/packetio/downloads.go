@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const MinBuffer = 1024
+const MinBuffer = 10485760 //10Mb buffer
 
 type DownloadStream struct {
 	TotalBytes  int64
@@ -27,7 +27,7 @@ func (ds *DownloadStream) Process(stream io.ReadCloser) {
 		n, err := stream.Read(buffer)
 		ds.TotalBytes += int64(n)
 		ds.TotalTime = time.Now().Sub(ds.TimeStarted)
-		go ds.Callback(ds.TotalBytes, ds.TotalTime)
+		ds.Callback(ds.TotalBytes, ds.TotalTime)
 
 		if err != nil {
 			if errors.Is(err, io.EOF) {

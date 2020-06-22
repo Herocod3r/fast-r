@@ -61,7 +61,7 @@ func (u *UploadStream) Read(p []byte) (n int, err error) {
 
 	u.TotalBytes += int64(n)
 	u.TotalTime = time.Now().Sub(u.TimeStarted)
-	go u.Callback(u.TotalBytes, u.TotalTime)
+	u.Callback(u.TotalBytes, u.TotalTime)
 	return n, err
 }
 

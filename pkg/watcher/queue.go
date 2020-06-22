@@ -2,44 +2,41 @@ package watcher
 
 import (
 	"sync"
-	"time"
 )
-
-// Item the type of the queue
 
 // ItemQueue the queue of Items
 type PacketDurationQueue struct {
-	items []time.Duration
+	items []float32
 	lock  sync.RWMutex
 }
 
 // New creates a new ItemQueue
 func NewItemQueue() *PacketDurationQueue {
-	return &PacketDurationQueue{items: []time.Duration{}}
+	return &PacketDurationQueue{items: make([]float32, MinimumSpeedBlock)}
 }
 
 // Enqueue adds an Item to the end of the queue
-func (s *PacketDurationQueue) Enqueue(t time.Duration) {
+func (s *PacketDurationQueue) Enqueue(t float32) {
 	s.lock.Lock()
 	s.items = append(s.items, t)
 	s.lock.Unlock()
 }
 
 // Dequeue removes an Item from the start of the queue
-func (s *PacketDurationQueue) Dequeue() *time.Duration {
+func (s *PacketDurationQueue) Dequeue() float32 {
 	s.lock.Lock()
 	item := s.items[0]
 	s.items = s.items[1:len(s.items)]
 	s.lock.Unlock()
-	return &item
+	return item
 }
 
 // Front returns the item next in the queue, without removing it
-func (s *PacketDurationQueue) Front() *time.Duration {
+func (s *PacketDurationQueue) Front() float32 {
 	s.lock.RLock()
 	item := s.items[0]
 	s.lock.RUnlock()
-	return &item
+	return item
 }
 
 // IsEmpty returns true if the queue is empty

@@ -2,28 +2,25 @@ package watcher
 
 import (
 	"context"
-	"math"
-	"time"
 )
 
 //This package is responsible for monitoring latency
 
-var ByteRate int64 = 1048576
-var MinimumLatency int64 = 10 //Milliseconds
+var ByteRate int64 = 102400 //100kb
+var MinimumSpeedBlock int = 10
 
 func NewListiner(cancelFunc context.CancelFunc) *Listener {
-	return &Listener{cancelFunc: cancelFunc, packetsQueue: NewItemQueue(), currentPacketTime: time.Now()}
+	return &Listener{cancelFunc: cancelFunc, packetsQueue: NewItemQueue()}
 }
 
 type Listener struct {
-	lastSentByte      int64
-	bufferedBytes     int64
-	currentPacketTime time.Time
-	packetsQueue      *PacketDurationQueue
-	cancelFunc        context.CancelFunc
+	lastSentByte  int64
+	bufferedBytes int64
+	packetsQueue  *PacketDurationQueue
+	cancelFunc    context.CancelFunc
 }
 
-func (l *Listener) Listen(bytesTransfered int64) {
+func (l *Listener) Listen(bytesTransfered int64, speed float32) {
 	curBytes := bytesTransfered - l.lastSentByte
 	l.bufferedBytes += curBytes
 
@@ -31,15 +28,18 @@ func (l *Listener) Listen(bytesTransfered int64) {
 		return
 	}
 
-	l.packetsQueue.Enqueue(time.Now().Sub(l.currentPacketTime))
-	l.currentPacketTime = time.Now()
-	if l.packetsQueue.Size() >= 3 {
-		pointA := time.Duration(math.Abs(float64(l.packetsQueue.items[0] - l.packetsQueue.items[1])))
-		pointB := time.Duration(math.Abs(float64(l.packetsQueue.items[1] - l.packetsQueue.items[2])))
-
-		isUniform := pointA.Milliseconds() < MinimumLatency && pointB.Milliseconds() < MinimumLatency
-		if isUniform {
+	l.packetsQueue.Enqueue(speed)
+	if l.packetsQueue.Size() >= MinimumSpeedBlock {
+		isEven := true
+		for i := 1; i < len(l.packetsQueue.items); i++ {
+			if l.packetsQueue.items[i-1] != l.packetsQueue.items[i] {
+				isEven = false
+				break
+			}
+		}
+		if isEven {
 			l.cancelFunc()
+			return
 		}
 		_ = l.packetsQueue.Dequeue()
 	}

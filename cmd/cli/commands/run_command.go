@@ -1,11 +1,16 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"time"
+
+	"github.com/herocod3r/fast-r/pkg/packetio"
+	"github.com/herocod3r/fast-r/pkg/watcher"
 
 	"github.com/apoorvam/goterminal"
 	ct "github.com/daviddengcn/go-colortext"
@@ -17,6 +22,7 @@ import (
 
 	"github.com/herocod3r/fast-r/pkg/network"
 
+	tm "github.com/buger/goterm"
 	fast_r "github.com/herocod3r/fast-r"
 
 	"github.com/spf13/cobra"
@@ -64,7 +70,7 @@ func executeRun(cmd *cobra.Command, args []string) {
 	}
 	fmt.Fprintln(writer, "")
 
-	ct.Foreground(ct.Blue, false)
+	ct.Foreground(ct.Blue, true)
 	fmt.Fprintln(writer, "----------SERVER SELECTED-----------")
 	fmt.Fprintln(writer, "====================================")
 	fmt.Fprintln(writer, "::Server::     ", server.Name)
@@ -72,10 +78,56 @@ func executeRun(cmd *cobra.Command, args []string) {
 	writer.Print()
 	ct.ResetColor()
 
-	//if _, ok := er.(*network.Error); ok {
-	//	//log network error
-	//}
+	runner := http.NewHandler()
+	ctx, cansFunc := context.WithCancel(context.Background())
+	monitor := watcher.NewListiner(cansFunc)
+	stream, er := runner.ExecuteDownload(ctx, server)
+	if er != nil {
+		fmt.Println("An error occurred unable to complete the request")
+		return
+	}
+	defer stream.Close()
+	ct.Foreground(ct.Green, true)
+	tm.Clear()
+	//lck := sync.Mutex{}
+	download := packetio.NewDownloadStream(func(i int64, duration time.Duration) {
+		//lck.Lock()
+		speed := ((float64(i * 8)) / duration.Seconds()) / float64(1000000)
+		monitor.Listen(i, float32(math.Floor(speed*100)/100))
 
+		tm.Flush() // Call it every time at the end of rendering
+		tm.MoveCursor(1, 1)
+
+		tm.Println(fmt.Sprintf("Download Speed is %.1f Mbs   ", speed))
+		tm.Flush()
+		//lck.Unlock()
+	})
+	ct.ResetColor()
+	download.Process(stream)
+	//lck = sync.Mutex{}
+	ctx, cansFunc = context.WithCancel(context.Background())
+	monitor = watcher.NewListiner(cansFunc)
+	tm.Clear()
+	uploadStream := packetio.NewUploadStream(func(i int64, duration time.Duration) {
+		//lck.Lock()
+		speed := ((float64(i * 8)) / duration.Seconds()) / float64(1000000)
+		monitor.Listen(i, float32(math.Floor(speed*100)/100))
+
+		tm.Flush() // Call it every time at the end of rendering
+		tm.MoveCursor(0, 2)
+
+		tm.Println(fmt.Sprintf("Upload Speed is %.1f Mbs    ", speed))
+		tm.Flush()
+		//lck.Unlock()
+	})
+	_ = runner.ExecuteUpload(ctx, server, uploadStream)
+
+	fmt.Println("")
+
+	ct.Foreground(ct.Yellow, true)
+	fmt.Println(fmt.Sprintf("Your Download Speed Is %.1f Mbs ", (float64(download.TotalBytes)/float64(125000))/download.TotalTime.Seconds()))
+	fmt.Println(fmt.Sprintf("Your Upload Speed Is %.1f Mbs", (float64(uploadStream.TotalBytes)/float64(125000))/uploadStream.TotalTime.Seconds()))
+	ct.ResetColor()
 }
 
 func getServer() (*network.Server, error) {
