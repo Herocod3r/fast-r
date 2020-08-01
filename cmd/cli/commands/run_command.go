@@ -59,10 +59,18 @@ func executeRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	fmt.Println("")
+
+	uploadClient, err := executeUpload(server)
+	if err != nil {
+		return
+	}
+
 	ct.ResetColor()
 	tm.Clear()
 	ct.Foreground(ct.Yellow, true)
 	fmt.Println(fmt.Sprintf("Your Download Speed Is %.2f Mbs ", (downloadClient.Speed)/1000))
+	fmt.Println(fmt.Sprintf("Your Upload Speed Is %.2f Mbs ", (uploadClient.Speed)/1000))
 	//fmt.Println(fmt.Sprintf("Your Upload Speed Is %.1f Mbs", (float64(uploadStream.TotalBytes)/float64(125000))/uploadStream.TotalTime.Seconds()))
 	ct.ResetColor()
 }
@@ -122,4 +130,29 @@ func executeDownload(server *network.Server) (*client.Download, error) {
 	ct.ResetColor()
 	tm.Clear()
 	return downloadClient, nil
+}
+
+func executeUpload(server *network.Server) (*client.Upload, error) {
+	syncLock := new(sync.Mutex)
+	ct.Foreground(ct.Green, true)
+	tm.Clear()
+	uploadClient := client.NewUpload(server, func(curSpeed float64) {
+		syncLock.Lock()
+		speed := curSpeed / 1000 //kib => mib
+		tm.Flush()               // Call it every time at the end of rendering
+		tm.MoveCursor(1, 1)
+
+		tm.Println(fmt.Sprintf("Upload Speed is %.2f Mbs   ", speed))
+		tm.Flush()
+		syncLock.Unlock()
+	})
+
+	er := uploadClient.Start()
+	if er != nil && uploadClient.Speed < 1 {
+		fmt.Println("An error occurred unable to complete the request", er.Error())
+		return nil, er
+	}
+	ct.ResetColor()
+	tm.Clear()
+	return uploadClient, nil
 }

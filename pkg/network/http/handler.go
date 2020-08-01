@@ -18,7 +18,10 @@ func NewHandler() *Handler {
 }
 
 func (h Handler) ExecuteUpload(ctx context.Context, server *network.Server, uploadReader io.Reader) error {
-	req, _ := http.NewRequestWithContext(ctx, "POST", server.Address, uploadReader)
+	ul, _ := url.Parse(server.Address)
+	ul.Path = ""
+	uploadUrl := fmt.Sprintf("%s/speedtest/upload.php", ul.String())
+	req, _ := http.NewRequestWithContext(ctx, "POST", uploadUrl, uploadReader)
 	req.ContentLength = 5242880 //5MB (WorstCase)
 	req.Header.Set("Content-Type", "text/plain")
 	rsp, err := http.DefaultClient.Do(req)

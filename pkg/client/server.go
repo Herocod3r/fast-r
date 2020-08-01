@@ -61,7 +61,7 @@ func getServerFromCache(cacheCLient cache.Client) ([]network.Server, error) {
 	}
 
 	periodOfCache := time.Now().Sub(serversCacheEntry.TimeCached)
-	if periodOfCache > (time.Minute * 2) { //2Minutes Limit
+	if periodOfCache > (time.Minute * 10) { //10Minutes Limit
 		return nil, errors.New("Cache Is Invalid")
 	}
 
