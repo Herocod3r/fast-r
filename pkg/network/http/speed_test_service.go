@@ -85,9 +85,12 @@ func (s *speedTestService) parseServers(max int, buffer *bytes.Buffer) (servers 
 		if _, ok := ignoreIdsMap[id]; ok {
 			continue
 		}
+		ul, _ := url.Parse(serverElm.SelectAttrValue("url", ""))
+		ul.Path = ""
 		servers = append(servers, network.Server{
-			Name:    serverElm.SelectAttrValue("sponsor", ""),
-			Address: serverElm.SelectAttrValue("url", ""),
+			Name:        serverElm.SelectAttrValue("sponsor", ""),
+			Address:     ul.String(),
+			PingAddress: ul.String() + "/latency.txt",
 		})
 	}
 

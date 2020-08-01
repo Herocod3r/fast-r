@@ -6,8 +6,8 @@ import (
 
 //This package is responsible for monitoring latency
 
-var ByteRate int64 = 102400 //100kb
-var MinimumSpeedBlock int = 10
+var ByteRate int64 = 102400 //400kb
+var MinimumSpeedBlock int = 20
 
 func NewListiner(cancelFunc context.CancelFunc) *Listener {
 	return &Listener{cancelFunc: cancelFunc, packetsQueue: NewItemQueue()}
