@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"math"
 	"time"
 
@@ -46,5 +47,14 @@ func (u *Upload) Start() error {
 		return err
 	}
 
+	return nil
+}
+
+func (u *Upload) Stop() error {
+	if !u.started {
+		return errors.New("Process Has Not Started")
+	}
+	u.cancelFunc()
+	u.started = false
 	return nil
 }

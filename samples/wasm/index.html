@@ -1,56 +1,157 @@
 <html>
 <head>
-    <meta charset="utf-8" />
-    <title>Go wasm</title>
+    <meta charset="utf-8">
+    <title>Go WebAssembly</title>
 </head>
 
 <body>
-
-
-  <div style="padding: 20px;">
-      <ul>
-          <li>
-              <button onClick="goprint();" disabled id="printBtn">Print Wasm</button>
-          </li>
-          <li>
-              <button onClick="goclose();"  disabled id="closeBtn" >Cancel Wasm</button>
-          </li>
-      </ul>
-  </div>
-
 <script src="wasm_exec.js"></script>
-
 <script>
     if (!WebAssembly.instantiateStreaming) {
-        // polyfill
         WebAssembly.instantiateStreaming = async (resp, importObject) => {
-            const source = await (await resp).arrayBuffer();
+            const source = await(await resp).arrayBuffer();
             return await WebAssembly.instantiate(source, importObject);
         };
     }
-
-    const go = new Go();
-
+    const go = new Go()
     let mod, inst;
+    WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
+        mod = result.module;
+        inst = result.instance;
+    }).catch((err) =>{
+        console.error(err)
+    });
 
-    WebAssembly.instantiateStreaming(fetch("lib.wasm"), go.importObject).then(
-        async result => {
-            mod = result.module;
-            inst = result.instance;
-            document.getElementById("printBtn").disabled = false;
-            document.getElementById("closeBtn").disabled = false;
-            await go.run(inst);
-            document.getElementById("printBtn").disabled = true;
-            document.getElementById("closeBtn").disabled = true;
+    var setPrintResult = null
+    var setGetServerResult = null
+    var setDownloadTestResult = null
+    var setUploadTestResult = null
+    var selectedServer
+    var stopUploadCallback,stopDownloadCallback = null;
+    async function runPrint() {
+
+        const printResultPromise = new Promise(resolve => {
+            setPrintResult = resolve
+        })
+
+        const run = go.run(inst)
+
+        const printResult = await printResultPromise
+
+        printResult(document.querySelector('#value1').value, document.querySelector('#value2').value)
+        await run
+        setPrintResult = null
+        inst = await WebAssembly.instantiate(mod, go.importObject)
+    }
+
+    async function runGetServer() {
+
+        const getServerResultPromise = new Promise(resolve => {
+            setGetServerResult = resolve
+        })
+
+        const run = go.run(inst)
+
+        const getServerResult = await getServerResultPromise
+
+        getServerResult(function (data) {
+            let serversResp = JSON.parse(data);
+            if (serversResp.Error !== ""){
+                console.log(serversResp.error)
+                return
+            }
+            selectedServer = serversResp.Servers[0];
+
+            for (var i =0;i < serversResp.Servers.length;i++){
+                let server = serversResp.Servers[i];
+                console.log(server)
+            }
+        })
+        await run
+        setGetServerResult = null
+        inst = await WebAssembly.instantiate(mod, go.importObject)
+    }
+
+    async function runDownloadTest(){
+        const getDownloadTestPromise = new Promise(resolve => {
+            setDownloadTestResult = resolve
+        })
+
+        const run = go.run(inst)
+
+        const getDownloadTestResult = await getDownloadTestPromise
+
+        stopDownloadCallback = getDownloadTestResult(JSON.stringify(selectedServer), function (data) {
+            const speed = Number(Math.round((parseFloat(data)/1000)+'e2')+'e-2');
+            document.getElementById("speed").innerHTML = "The Current Speed Is <strong>"+speed+" Mbs</strong>";
+            //current speed
+        },function (finalSpeed) {
+            const speed = Number(Math.round((parseFloat(finalSpeed)/1000)+'e2')+'e-2');
+            document.getElementById("speed").innerHTML = "The Final Download Speed Is <strong>"+speed+" Mbs</strong>";
+                //On Completed
+        })
+        await run
+        setDownloadTestResult = null
+        inst = await WebAssembly.instantiate(mod, go.importObject)
+    }
+
+    async function stopDownload() {
+        const error = stopDownloadCallback()
+        if (error != null){
+            console.log(error)
         }
-    );
+        inst = await WebAssembly.instantiate(mod, go.importObject)
+    }
 
-    // async function run() {
-    //     await go.run(inst);
-    //     inst = await WebAssembly.instantiate(mod, go.importObject); // reset instance
-    // }
+    async function runUploadTest(){
+        const getUploadTestPromise = new Promise(resolve => {
+            setUploadTestResult = resolve
+        })
+
+        const run = go.run(inst)
+
+        const getUploadTestResult = await getUploadTestPromise
+
+        stopUploadCallback = getUploadTestResult(JSON.stringify(selectedServer), function (data) {
+            const speed = Number(Math.round((parseFloat(data)/1000)+'e2')+'e-2');
+            document.getElementById("speed").innerHTML = "The Current Upload Speed Is <strong>"+speed+" Mbs</strong>";
+            //current speed
+        },function (finalSpeed) {
+            const speed = Number(Math.round((parseFloat(finalSpeed)/1000)+'e2')+'e-2');
+            document.getElementById("speed").innerHTML = "The Final Upload Speed Is <strong>"+speed+" Mbs</strong>";
+            //On Completed
+        })
+        await run
+        setUploadTestResult = null
+        inst = await WebAssembly.instantiate(mod, go.importObject)
+    }
+
+    async function stopUpload() {
+        const error = stopUploadCallback()
+        if (error != null){
+            console.log(error)
+        }
+        inst = await WebAssembly.instantiate(mod, go.importObject)
+    }
+
+
 </script>
+<button onClick="runPrint()" id="runButton">Run Print</button>
+<button onClick="runGetServer()" id="runButton">Run Server</button>
+<button onClick="runDownloadTest()" id="runButton">Start Download</button>
+<button onClick="stopDownload()" id="runButton">Stop Download</button>
+
+
+<button onClick="runUploadTest()" id="runButton">Start Upload</button>
+<button onClick="stopUpload()" id="runButton">Stop Upload</button>
+<input id="value1" type="text">
+<input id="value2" type="text">
+
+<br />
+
+<p id="speed"></p>
 
 
 </body>
+
 </html>

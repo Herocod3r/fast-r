@@ -14,9 +14,9 @@ import (
 	"github.com/herocod3r/fast-r/pkg/network"
 )
 
-const (
-	configUrl = "https://www.speedtest.net/speedtest-config.php"
-	serverUrl = "https://www.speedtest.net/speedtest-servers-static.php"
+var (
+	ConfigUrl = "https://www.speedtest.net/speedtest-config.php"
+	ServerUrl = "https://www.speedtest.net/speedtest-servers-static.php"
 )
 
 type speedTestService struct {
@@ -34,7 +34,7 @@ func (s *speedTestService) GetServers(max int, client network.Client) (servers [
 
 	s.ignoreIds = strings.Split(client.MetaData, ",")
 
-	ul, _ := url.Parse(serverUrl)
+	ul, _ := url.Parse(ServerUrl)
 	queries := ul.Query()
 	queries.Add("X", time.Now().UTC().String())
 	ul.RawQuery = queries.Encode()
@@ -98,7 +98,7 @@ func (s *speedTestService) parseServers(max int, buffer *bytes.Buffer) (servers 
 }
 
 func (s *speedTestService) GetClientInfo() (client network.Client, er error) {
-	ul, _ := url.Parse(configUrl)
+	ul, _ := url.Parse(ConfigUrl)
 	queries := ul.Query()
 	queries.Add("X", time.Now().UTC().String())
 	ul.RawQuery = queries.Encode()
